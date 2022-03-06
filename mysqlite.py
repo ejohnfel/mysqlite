@@ -98,6 +98,8 @@ def SetPragma(pragma,mode,connection=None):
 
 	DbgMsg("Exitting mysqlite::SetPragma")
 
+	return result
+
 # Turn On Bulk Operations
 def BulkOn(connection=None):
 	"""Bulk Operations On"""
@@ -108,8 +110,8 @@ def BulkOn(connection=None):
 
 	if connection == None: connection = ActiveConnection
 
-	SetPragma(connection,"journal_mode","WAL")
-	SetPragma(connection,"synchronous","NORMAL")
+	SetPragma("journal_mode","WAL",connection)
+	SetPragma("synchronous","NORMAL",connection)
 
 	DbgMsg("Exitting mysqlite::BulkOn")
 
@@ -123,8 +125,8 @@ def BulkOff(connection=None):
 
 	if connection == None: connection = ActiveConnection
 
-	SetPragma(connection,"journal_mode","DELETE")
-	SetPragma(connection,"synchronous","FULL")
+	SetPragma("journal_mode","DELETE",connection)
+	SetPragma("synchronous","FULL",connection)
 
 	DbgMsg("Exitting mysqlite::BulkOff")
 
@@ -138,12 +140,16 @@ def CreateTables(table_specs,connection=None):
 
 	if connection == None : connection = ActiveConnection
 
+	result = None
+
 	try:
 		result = __BasicExecuteWithCommit__(table_specs,None,connection)
 	except Exception as err:
 		ErrMsg(err,"An error occurred trying to create a table")
 
 	DbgMsg("Exitting mysqlite::CreateTables")
+
+	return result
 
 
 # Open Database
