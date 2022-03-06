@@ -18,6 +18,8 @@ import time
 import py_helper as ph
 from py_helper import CmdLineMode, DebugMode, DbgMsg, Msg, ErrMsg
 
+import argparse
+
 #
 # Global Variables and Constants
 #
@@ -36,9 +38,49 @@ Commit = lambda connection: connection.commit()
 # Close Connection
 Close = lambda connection: connection.close()
 
+# Choices for command
+__choices__ = [ "select", "insert", "update", "delete", "execute" ]
+
 #
 # Functions
 #
+
+# Internal Execute
+def __BasicExecuteWithNoCommit__(statement,parameters=None,connection=None):
+	"""Basic Execute With No Commit"""
+
+	global ActiveConnection
+
+	DbgMsg("Entering mysqlite::Command")
+
+	if connection == None: connection = ActiveConnection
+
+	cursor.connection.cursor()
+
+	results = None
+
+	if parameters:
+		results = cursor.execute(statement,parameters)
+	else:
+		results = cursor.execute(statement)
+
+	DbgMsg("Exitting mysqlite::Command")
+
+	return results, cursor
+
+# Execute A Generic Statement
+def Execute(statement,parameters=None,connection=None):
+	"""Execute A Statement"""
+
+	global ActiveConnection
+
+	DbgMsg("Entering mysqlite::Command")
+
+	results,cursor = __BasicExecuteWithNoCommit__(statement,parameters,connection)
+
+	DbgMsg("Exitting mysqlite::Command")
+
+	return results,cursor
 
 # Set Pragmas
 def SetPragma(pragma,mode,connection=None):
@@ -50,11 +92,9 @@ def SetPragma(pragma,mode,connection=None):
 
 	if connection == None: connection = ActiveConnection
 
-	c = connection.cursor()
+	statement = f"PRAGMA {pragma} = {mode}"
 
-	c.execute(f"PRAGMA {pragma} = {mode}")
-
-	Commit(connection)
+	result = __BasicExecuteWithCommit__(statement,None,connection)
 
 	DbgMsg("Exitting mysqlite::SetPragma")
 
@@ -99,12 +139,7 @@ def CreateTables(table_specs,connection=None):
 	if connection == None : connection = ActiveConnection
 
 	try:
-		cursor = connection.cursor()
-
-		for table_spec in table_specs:
-			cursor.execute(table_spec)
-
-		Commit(connection)
+		result = __BasicExecuteWithCommit__(table_specs,None,connection)
 	except Exception as err:
 		ErrMsg(err,"An error occurred trying to create a table")
 
@@ -160,12 +195,7 @@ def Select(statement,parameters=None,connection=None):
 
 	if connection == None: connection = ActiveConnection
 
-	cursor = connection.cursor()
-
-	if parameters:
-		cursor.execute(statement,parameters)
-	else:
-		cursor.execute(statement)
+	results,cursor = __BasicExecuteWithNoCommit__(statement,parameters,connection)
 
 	results = cursor.fetchall()
 
@@ -235,8 +265,122 @@ def Delete(statement,parameters=None,connection=None):
 	return result
 
 #
+# Command Processing
+#
+
+# Process Commands Given On Command Line
+def ProcessCommand(args,unknowns):
+	"""Process Command Line Request"""
+
+	global __choices__
+
+	command = args.command
+	file = args.file
+
+	if file == None:
+		Msg("To process commands you need to provide a file with '-f'")
+		return
+
+	parser = argparse.ArgumentParser(description="sqlite3 command line processor")
+
+	subparser = parser.add_subparsers(help="Sqlite3 Command line processor",dest="command")
+
+	cmd_select = subparser.add_parser("select",help="Select on a table [select columns table clause]")
+	# select [columns] from [table] where [clause]
+	cmd_select.add_argument("columns",nargs=1,help="Columns to select")
+	cmd_select.add_argument("table",nargs=1,help="Table to select from")
+	cmd_select.add_argument("clause",nargs="*",help="Clause Arguments")
+
+	cmd_insert = subparser.add_parser("insert",help="Insert into a table")
+	# insert into [table] ([columns]) values([values])
+
+	cmd_update = subparser.add_parser("update",help="Update table")
+	# update [table] ([columns]) values([values])
+
+	cmd_delete = subparser.add_parser("delete",help="Delete from table")
+	# delete from [table] where [clauses]
+
+	cmd_execute = subparser.add_parser("execute",help="Execute a statement")
+	# execute [statement]
+	cmd_execute.add_argument("statement",nargs="?",help="Execute given statement")
+
+	new_arguments = [ command ]
+	new_arguments.extend(unknowns)
+
+	args = parser.parse_args(new_arguments)
+
+	connection = Open(file)
+
+	if connection == None:
+		Msg(f"Could not open {file}")
+		return
+
+	if args.command == "select":
+		cmd = f"select {args.columns} from {args.table}"
+
+		if len(args.clause) > 0:
+			clause = " ".join(args.clause)
+			cmd = f"{cmd} where {clause}"
+
+		results = Select(cmd)
+
+		for result in results:
+			Msg(result)
+	elif args.command == "insert":
+		pass
+	elif args.command == "update":
+		pass
+	elif args.command == "delete":
+		pass
+	elif args.command == "execute":
+		cmd = " ".join(args.statement)
+
+		results = Execute(cmd)
+
+	Close()
+
+#
+# Support and Testing
+#
+
+# Build Parser
+def BuildParser():
+	"""Build Parser"""
+
+	global __choices__
+
+	parser = argparse.ArgumentParser(prog="mysqlite",description="Mysqlite Support Lib")
+
+	parser.add_argument("-d","--debug",action="store_true",help="Enter debug mode")
+	parser.add_argument("-t","--test",action="store_true",help="Run Test Stub")
+	parser.add_argument("-f","--file",help="File to run commands against")
+	parser.add_argument("command",nargs="?",choices=__choices__,help="Command to execute")
+
+	return parser
+
+# Test Stub
+def Test(**kwargs):
+	"""Test Stub"""
+
+	ph.NotImplementedYet()
+
+#
 # Main Loop
 #
 
 if __name__ == "__main__":
-	Msg("This module was not meant to be executed as a stand alone script")
+	CmdLineMode(True)
+
+	parser = BuildParser()
+
+	args,unknowns = parser.parse_known_args()
+
+	if args.debug:
+		DebugMode(True)
+
+	if args.test:
+		Test(argument=args,unknowns=unknowns)
+	elif args.command != None:
+		ProcessCommand(args,unknowns)
+	else:
+		Msg("This module was not meant to be executed as a stand alone script")
