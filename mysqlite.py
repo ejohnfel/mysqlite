@@ -55,7 +55,7 @@ def __BasicExecuteWithNoCommit__(statement,parameters=None,connection=None):
 
 	if connection == None: connection = ActiveConnection
 
-	cursor.connection.cursor()
+	cursor = connection.cursor()
 
 	results = None
 
