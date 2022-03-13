@@ -51,7 +51,7 @@ def __BasicExecuteWithNoCommit__(statement,parameters=None,connection=None):
 
 	global ActiveConnection
 
-	DbgMsg("Entering mysqlite::Command")
+	#DbgMsg("Entering mysqlite::Command")
 
 	if connection == None: connection = ActiveConnection
 
@@ -64,7 +64,7 @@ def __BasicExecuteWithNoCommit__(statement,parameters=None,connection=None):
 	else:
 		results = cursor.execute(statement)
 
-	DbgMsg("Exitting mysqlite::Command")
+	#DbgMsg("Exitting mysqlite::Command")
 
 	return results, cursor
 
@@ -74,11 +74,11 @@ def Execute(statement,parameters=None,connection=None):
 
 	global ActiveConnection
 
-	DbgMsg("Entering mysqlite::Command")
+	#DbgMsg("Entering mysqlite::Command")
 
 	results,cursor = __BasicExecuteWithNoCommit__(statement,parameters,connection)
 
-	DbgMsg("Exitting mysqlite::Command")
+	#DbgMsg("Exitting mysqlite::Command")
 
 	return results,cursor
 
@@ -88,7 +88,7 @@ def SetPragma(pragma,mode,connection=None):
 
 	global ActiveConnection
 
-	DbgMsg("Entering mysqlite::SetPragma")
+	#DbgMsg("Entering mysqlite::SetPragma")
 
 	if connection == None: connection = ActiveConnection
 
@@ -96,7 +96,7 @@ def SetPragma(pragma,mode,connection=None):
 
 	result = __BasicExecuteWithCommit__(statement,None,connection)
 
-	DbgMsg("Exitting mysqlite::SetPragma")
+	#DbgMsg("Exitting mysqlite::SetPragma")
 
 	return result
 
@@ -106,14 +106,14 @@ def BulkOn(connection=None):
 
 	global ActiveConnection
 
-	DbgMsg("Entering mysqlite::BulkOn")
+	#DbgMsg("Entering mysqlite::BulkOn")
 
 	if connection == None: connection = ActiveConnection
 
 	SetPragma("journal_mode","WAL",connection)
 	SetPragma("synchronous","NORMAL",connection)
 
-	DbgMsg("Exitting mysqlite::BulkOn")
+	#DbgMsg("Exitting mysqlite::BulkOn")
 
 # Turn off Bulk Operations
 def BulkOff(connection=None):
@@ -121,14 +121,14 @@ def BulkOff(connection=None):
 
 	global ActiveConnection
 
-	DbgMsg("Entering mysqlite::BulkOff")
+	#DbgMsg("Entering mysqlite::BulkOff")
 
 	if connection == None: connection = ActiveConnection
 
 	SetPragma("journal_mode","DELETE",connection)
 	SetPragma("synchronous","FULL",connection)
 
-	DbgMsg("Exitting mysqlite::BulkOff")
+	#DbgMsg("Exitting mysqlite::BulkOff")
 
 # Create Tables
 def CreateTables(table_specs,connection=None):
@@ -136,7 +136,7 @@ def CreateTables(table_specs,connection=None):
 
 	global ActiveConnection
 
-	DbgMsg("Entering mysqlite::CreateTables")
+	#DbgMsg("Entering mysqlite::CreateTables")
 
 	if connection == None : connection = ActiveConnection
 
@@ -147,7 +147,7 @@ def CreateTables(table_specs,connection=None):
 	except Exception as err:
 		ErrMsg(err,"An error occurred trying to create a table")
 
-	DbgMsg("Exitting mysqlite::CreateTables")
+	#DbgMsg("Exitting mysqlite::CreateTables")
 
 	return result
 
@@ -158,7 +158,7 @@ def Open(url,table_specs=None,protect_active=False):
 
 	global ActiveConnection, DatabaseURL
 
-	DbgMsg("Entering mysqlite::Open")
+	#DbgMsg("Entering mysqlite::Open")
 
 	if table_specs:
 		DbgMsg("With table_specs")
@@ -187,7 +187,7 @@ def Open(url,table_specs=None,protect_active=False):
 	except Exception as err:
 		ErrMsg(err,f"An error occurred trying to open {url}")
 
-	DbgMsg("Exitting mysqlite::Open")
+	#DbgMsg("Exitting mysqlite::Open")
 
 	return connection
 
@@ -197,7 +197,7 @@ def Select(statement,parameters=None,connection=None):
 
 	global ActiveConnection
 
-	DbgMsg("Entering mysqlite::Select")
+	#DbgMsg("Entering mysqlite::Select")
 
 	if connection == None: connection = ActiveConnection
 
@@ -205,7 +205,7 @@ def Select(statement,parameters=None,connection=None):
 
 	results = cursor.fetchall()
 
-	DbgMsg("Exitting mysqlite::Select")
+	#DbgMsg("Exitting mysqlite::Select")
 
 	return results
 
@@ -215,7 +215,7 @@ def __BasicExecuteWithCommit__(statement,parameters=None,connection=None):
 
 	global ActiveConnection
 
-	DbgMsg("Entering mysqlite::__BasicExecuteWithCommit__")
+	#DbgMsg("Entering mysqlite::__BasicExecuteWithCommit__")
 
 	if connection == None: connection = ActiveConnection
 
@@ -230,7 +230,7 @@ def __BasicExecuteWithCommit__(statement,parameters=None,connection=None):
 
 	Commit(connection)
 
-	DbgMsg("Exitting mysqlite::__BasicExecuteWithCommit__")
+	#DbgMsg("Exitting mysqlite::__BasicExecuteWithCommit__")
 
 	return result
 
@@ -238,11 +238,11 @@ def __BasicExecuteWithCommit__(statement,parameters=None,connection=None):
 def Insert(statement,parameters=None,connection=None):
 	"""Basic Insert"""
 
-	DbgMsg("Entering mysqlite::Insert")
+	#DbgMsg("Entering mysqlite::Insert")
 
 	result = __BasicExecuteWithCommit__(statement,parameters,connection)
 
-	DbgMsg("Exitting mysqlite::Insert")
+	#DbgMsg("Exitting mysqlite::Insert")
 
 	return result
 
