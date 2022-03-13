@@ -24,6 +24,10 @@ import argparse
 # Global Variables and Constants
 #
 
+# Version Numbers
+VERSION=(0,0,1)
+Version = __version__ = ".".join([ str(x) for x in VERSION ])
+
 # Database URL Reference
 DatabaseURL = None
 
