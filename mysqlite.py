@@ -25,7 +25,7 @@ import argparse
 #
 
 # Version Numbers
-VERSION=(0,0,2)
+VERSION=(0,0,3)
 Version = __version__ = ".".join([ str(x) for x in VERSION ])
 
 # Database URL Reference
