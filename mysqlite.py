@@ -25,7 +25,7 @@ import argparse
 #
 
 # Version Numbers
-VERSION=(0,0,1)
+VERSION=(0,0,2)
 Version = __version__ = ".".join([ str(x) for x in VERSION ])
 
 # Database URL Reference
@@ -176,7 +176,7 @@ def Open(url,table_specs=None,protect_active=False):
 		Close(connection)
 
 	try:
-		connection = sql.connect(url)
+		connection = sql.connect(url,detect_types=sql.PARSE_DECLTYPES|sql.PARSE_COLNAMES)
 
 		if table_specs and len(table_specs) > 0:
 			if url == ":memory:" or not os.path.exists(url) or os.path.getsize(url) == 0:
