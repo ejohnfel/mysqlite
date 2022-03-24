@@ -25,7 +25,7 @@ import argparse
 #
 
 # Version Numbers
-VERSION=(0,0,3)
+VERSION=(0,0,4)
 Version = __version__ = ".".join([ str(x) for x in VERSION ])
 
 # Database URL Reference
@@ -147,7 +147,11 @@ def CreateTables(table_specs,connection=None):
 	result = None
 
 	try:
-		result = __BasicExecuteWithCommit__(table_specs,None,connection)
+		if type(table_specs) == str:
+			table_specs = [ table_specs ]
+
+		for table_spec in table_specs:
+			result = __BasicExecuteWithCommit__(table_spec,None,connection)
 	except Exception as err:
 		ErrMsg(err,"An error occurred trying to create a table")
 
