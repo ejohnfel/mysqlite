@@ -6,14 +6,15 @@
 
 import os, sys, io, re
 
+import datetime as dt
+from datetime import datetime,date,timedelta
+import time
+
 import sqlite3 as sql
 from sqlite3 import Error
 
 import csv,json
-import copy, uuid
-
-from datetime import datetime,timedelta
-import time
+import copy,uuid
 
 import py_helper as ph
 from py_helper import CmdLineMode, DebugMode, DbgMsg, Msg, ErrMsg
@@ -27,6 +28,206 @@ import argparse
 # Version Numbers
 VERSION=(0,0,4)
 Version = __version__ = ".".join([ str(x) for x in VERSION ])
+
+# Sqlite3 Class Wrapper
+class Sqlite3Wrapper():
+	"""Sqlite3 Wrapper Class"""
+
+	# Database URL
+	DatabaseURL = None
+	# Active DB Connection
+	ActiveConnection = None
+	# Cursor
+	Cursor = None
+
+	# Initialize Instance
+	def __init__(self,database_url):
+		"""Initialize Instance"""
+
+		self.DatabaseURL = database_url
+		self.ActiveConnection = None
+		self.Cursor = None
+
+	# Use Database
+	def Use(self,database_url):
+		"""Set Database To Use"""
+
+		if self.ActiveConnection:
+			self.Close()
+
+		self.DatabaseURL = database_url
+
+	# Create Database
+	def CreateDatabase(self,**kwargs):
+		"""Create Database"""
+
+		if self.DatabaseURL != ":memory:":
+			ph.Touch(self.DatabaseURL)
+
+		return None
+
+	# Create Table
+	def CreateTable(self,table_specs,cursor=None):
+		"""Create Table"""
+
+		result = None
+
+		try:
+			if type(table_specs) == str:
+				table_specs = [ table_specs ]
+
+			for table_spec in table_specs:
+				result = self.Execute(table_spec,None,cursor)
+		except Exception as err:
+			raise err
+
+		return result
+
+	# Open Database
+	def Open(self,**kwargs):
+		"""Open Sqlite3 Database"""
+
+		table_specs = kwargs.get("table_specs",None)
+
+		if table_specs:
+			DbgMsg("With table_specs")
+
+		try:
+			self.ActiveConnection = sql.connect(self.DatabaseURL,detect_types=sql.PARSE_DECLTYPES|sql.PARSE_COLNAMES)
+
+			if table_specs and len(table_specs) > 0:
+				if url == ":memory:" or not os.path.exists(url) or os.path.getsize(url) == 0:
+					CreateTables(table_specs)
+		except Error as dberr:
+			ErrMsg(dberr,f"An error occurred trying to open {self.DatabaseURL}")
+		except Exception as err:
+			ErrMsg(err,f"An error occurred trying to open {self.DatabaseURL}")
+
+		return self.ActiveConnection
+
+	# Check if Database is Open
+	def IsOpen(self):
+		"""Check if Database Is Open"""
+
+		return self.ActiveConnection != None
+
+	# Check if Database is Closed
+	def IsClosed(self):
+		"""Check if Database is Closed"""
+
+		return not self.IsOpen()
+
+	# Close
+	def Close(self):
+		"""Close Open Database"""
+
+		if self.ActiveConnection:
+			pass
+
+	# Set Pragmas
+	def SetPragma(self,pragma,mode,cursor=None):
+		"""Set DB Pragma"""
+
+		statement = f"PRAGMA {pragma} = {mode}"
+
+		result = self.Execute(statement,None,cursor)
+
+		return result
+
+	# Turn On Bulk Operations
+	def BulkOn(self,cursor=None):
+		"""Bulk Operations On"""
+
+		self.SetPragma("journal_mode","WAL",cursor)
+		self.SetPragma("synchronous","NORMAL",cursor)
+
+	# Turn off Bulk Operations
+	def BulkOff(self,cursor=None):
+		"""Bulk Operations Off"""
+
+		self.SetPragma("journal_mode","DELETE",cursor)
+		self.SetPragma("synchronous","FULL",cursor)
+
+	# Get Cursor
+	def GetCursor(self,new_cursor=False):
+		"""Get Current (or now) Cursor"""
+
+		if new_cursor:
+			cursor = self.ActiveConnection.cursor()
+		elif self.Cursor != None:
+			self.Cursor = cursor = self.ActiveConnection.cursor()
+		else:
+			cursor = self.Cursor
+
+		return cursor
+
+	# Basic Execution Atom
+	def Execute(self,cmd,parameters=None,cursor=None):
+		"""Basic Execution Atom"""
+
+		if not cursor:
+			cursor = self.GetCursor()
+
+		results = None
+
+		if parameters:
+			results = cursor.execute(statement,parameters)
+		else:
+			results = cursor.execute(statement)
+
+		return results
+
+	# Execution with Result set
+	def Resultset(self,cmd,parameters=None,cursor=None):
+		"""Execution with result set"""
+
+		pass
+
+	# Commit
+	def Commit(self):
+		"""Commit"""
+
+		if self.ActiveConnection:
+			self.ActiveConnection.commit()
+
+	# Basic Insert
+	def Insert(self,cmd,parameters=None,cursor=None):
+		"""Basic/Compact Insert"""
+
+		try:
+			self.Execute(cmd,parameters,cursor)
+
+			self.Commit()
+		except Exception as err:
+			raise err
+
+	# Run A Basic Select
+	def Select(self,cmd,parameters=None,cursor=None):
+		"""Compact Select Statement"""
+
+		return self.ResultSet(cmd,parameters,cursor)
+
+	# Update Record(s)
+	def Update(self,cmd,parameters=None,cursor=None):
+		"""Update Record(s)"""
+
+		try:
+			self.Execute(cmd,parameters,cursor)
+
+			self.Commit()
+		except Exception as err:
+			raise err
+
+	# Delete Record(s)
+	def Delete(self,cmd,parameters=None,cursor=None):
+		"""Delete Record(s)"""
+
+		try:
+			self.Execute(cmd,parameters,cursor)
+
+			self.Commit()
+		except Exception as err:
+			raise err
 
 # Database URL Reference
 DatabaseURL = None
@@ -279,81 +480,6 @@ def Delete(statement,parameters=None,connection=None):
 	return result
 
 #
-# Command Processing
-#
-
-# Process Commands Given On Command Line
-def ProcessCommand(args,unknowns):
-	"""Process Command Line Request"""
-
-	global __choices__
-
-	command = args.command
-	file = args.file
-
-	if file == None:
-		Msg("To process commands you need to provide a file with '-f'")
-		return
-
-	parser = argparse.ArgumentParser(description="sqlite3 command line processor")
-
-	subparser = parser.add_subparsers(help="Sqlite3 Command line processor",dest="command")
-
-	cmd_select = subparser.add_parser("select",help="Select on a table [select columns table clause]")
-	# select [columns] from [table] where [clause]
-	cmd_select.add_argument("columns",nargs=1,help="Columns to select")
-	cmd_select.add_argument("table",nargs=1,help="Table to select from")
-	cmd_select.add_argument("clause",nargs="*",help="Clause Arguments")
-
-	cmd_insert = subparser.add_parser("insert",help="Insert into a table")
-	# insert into [table] ([columns]) values([values])
-
-	cmd_update = subparser.add_parser("update",help="Update table")
-	# update [table] ([columns]) values([values])
-
-	cmd_delete = subparser.add_parser("delete",help="Delete from table")
-	# delete from [table] where [clauses]
-
-	cmd_execute = subparser.add_parser("execute",help="Execute a statement")
-	# execute [statement]
-	cmd_execute.add_argument("statement",nargs="?",help="Execute given statement")
-
-	new_arguments = [ command ]
-	new_arguments.extend(unknowns)
-
-	args = parser.parse_args(new_arguments)
-
-	connection = Open(file)
-
-	if connection == None:
-		Msg(f"Could not open {file}")
-		return
-
-	if args.command == "select":
-		cmd = f"select {args.columns} from {args.table}"
-
-		if len(args.clause) > 0:
-			clause = " ".join(args.clause)
-			cmd = f"{cmd} where {clause}"
-
-		results = Select(cmd)
-
-		for result in results:
-			Msg(result)
-	elif args.command == "insert":
-		pass
-	elif args.command == "update":
-		pass
-	elif args.command == "delete":
-		pass
-	elif args.command == "execute":
-		cmd = " ".join(args.statement)
-
-		results = Execute(cmd)
-
-	Close()
-
-#
 # Support and Testing
 #
 
@@ -367,8 +493,6 @@ def BuildParser():
 
 	parser.add_argument("-d","--debug",action="store_true",help="Enter debug mode")
 	parser.add_argument("-t","--test",action="store_true",help="Run Test Stub")
-	parser.add_argument("-f","--file",help="File to run commands against")
-	parser.add_argument("command",nargs="?",choices=__choices__,help="Command to execute")
 
 	return parser
 
@@ -394,7 +518,5 @@ if __name__ == "__main__":
 
 	if args.test:
 		Test(argument=args,unknowns=unknowns)
-	elif args.command != None:
-		ProcessCommand(args,unknowns)
 	else:
 		Msg("This module was not meant to be executed as a stand alone script")
