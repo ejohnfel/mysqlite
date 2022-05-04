@@ -1,7 +1,7 @@
 PACKAGE=mysqlite3-mod
 EPACKAGE=mysqlite3_mod
-CODE=mysqlite.py
-SRC=src/$(CODE)
+CODE=mysqlite3.py
+SRC=$(CODE)
 PYTHONTARGET=python3.8
 CHEATTARGET=/usr/lib/$(PYTHONTARGET)
 VENV=tests
