@@ -26,7 +26,7 @@ import argparse
 #
 
 # Version Numbers
-VERSION=(0,0,7)
+VERSION=(0,0,9)
 Version = __version__ = ".".join([ str(x) for x in VERSION ])
 
 # Sqlite3 Class Wrapper
@@ -154,7 +154,7 @@ class Sqlite3Wrapper():
 
 		if new_cursor:
 			cursor = self.ActiveConnection.cursor()
-		elif self.Cursor != None:
+		elif self.Cursor == None:
 			self.Cursor = cursor = self.ActiveConnection.cursor()
 		else:
 			cursor = self.Cursor
@@ -165,15 +165,15 @@ class Sqlite3Wrapper():
 	def Execute(self,cmd,parameters=None,cursor=None):
 		"""Basic Execution Atom"""
 
-		if not cursor:
+		if cursor == None:
 			cursor = self.GetCursor()
 
 		results = None
 
 		if parameters:
-			results = cursor.execute(statement,parameters)
+			results = cursor.execute(cmd,parameters)
 		else:
-			results = cursor.execute(statement)
+			results = cursor.execute(cmd)
 
 		return results
 
@@ -181,7 +181,19 @@ class Sqlite3Wrapper():
 	def Resultset(self,cmd,parameters=None,cursor=None):
 		"""Execution with result set"""
 
-		pass
+		if cursor == None:
+			cursor = self.GetCursor()
+
+		results = None
+
+		if parameters:
+			results = cursor.execute(cmd,parameters)
+		else:
+			results = cursor.execute(cmd)
+
+		result_set = cursor.fetchall()
+
+		return result_set
 
 	# Commit
 	def Commit(self):
@@ -197,12 +209,16 @@ class Sqlite3Wrapper():
 		if re.search("^insert into",cmd,re.IGNORECASE) == None:
 			cmd = "INSERT INTO " + cmd
 
+		results = None
+
 		try:
-			self.Execute(cmd,parameters,cursor)
+			results = self.Execute(cmd,parameters,cursor)
 
 			self.Commit()
 		except Exception as err:
 			raise err
+
+		return results
 
 	# Run A Basic Select
 	def Select(self,cmd,parameters=None,cursor=None):
@@ -220,12 +236,16 @@ class Sqlite3Wrapper():
 		if re.search("^update",cmd,re.IGNORECASE) == None:
 			cmd = "UPDATE " + cmd
 
+		results = None
+
 		try:
-			self.Execute(cmd,parameters,cursor)
+			results = self.Execute(cmd,parameters,cursor)
 
 			self.Commit()
 		except Exception as err:
 			raise err
+
+		return results
 
 	# Delete Record(s)
 	def Delete(self,cmd,parameters=None,cursor=None):
@@ -234,12 +254,16 @@ class Sqlite3Wrapper():
 		if re.search("^delete from",cmd,re.IGNORECASE) == None:
 			cmd = "DELETE FROM " + cmd
 
+		results = None
+
 		try:
-			self.Execute(cmd,parameters,cursor)
+			results = self.Execute(cmd,parameters,cursor)
 
 			self.Commit()
 		except Exception as err:
 			raise err
+
+		return results
 
 #
 # Support and Testing
