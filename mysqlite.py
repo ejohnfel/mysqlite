@@ -26,7 +26,7 @@ import argparse
 #
 
 # Version Numbers
-VERSION=(0,0,5)
+VERSION=(0,0,6)
 Version = __version__ = ".".join([ str(x) for x in VERSION ])
 
 # Sqlite3 Class Wrapper
