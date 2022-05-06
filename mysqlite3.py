@@ -26,7 +26,7 @@ import argparse
 #
 
 # Version Numbers
-VERSION=(0,0,9)
+VERSION=(0,0,10)
 Version = __version__ = ".".join([ str(x) for x in VERSION ])
 
 # Sqlite3 Class Wrapper
@@ -90,13 +90,13 @@ class Sqlite3Wrapper():
 		table_specs = kwargs.get("table_specs",None)
 
 		if table_specs:
-			DbgMsg("With table_specs")
+			DbgMsg("Opening With table_specs")
 
 		try:
 			self.ActiveConnection = sql.connect(self.DatabaseURL,detect_types=sql.PARSE_DECLTYPES|sql.PARSE_COLNAMES)
 
 			if table_specs and len(table_specs) > 0:
-				if url == ":memory:" or not os.path.exists(url) or os.path.getsize(url) == 0:
+				if self.DatabaseURL == ":memory:" or not os.path.exists(self.DatabaseURL) or os.path.getsize(url) == 0:
 					CreateTables(table_specs)
 		except Error as dberr:
 			ErrMsg(dberr,f"An error occurred trying to open {self.DatabaseURL}")
